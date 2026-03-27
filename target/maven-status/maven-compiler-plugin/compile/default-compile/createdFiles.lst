@@ -1,0 +1,8 @@
+com\example\LoginServlet.class
+com\example\DashboardServlet.class
+com\example\AuthenticationFilter.class
+com\example\LogoutServlet.class
+com\example\JpaUtil.class
+com\example\UserDAO.class
+com\example\User.class
+com\example\SettingsServlet.class
