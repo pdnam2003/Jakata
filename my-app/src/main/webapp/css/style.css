@@ -394,6 +394,32 @@ footer {
     }
 }
 
+/* Navigation Links */
+.nav-link {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-link:hover {
+    color: #3498db;
+}
+
+/* Logout Link */
+.logout-link {
+    background-color: #e74c3c;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.logout-link:hover {
+    background-color: #c0392b;
+}
+
 @media (max-width: 480px) {
     .navbar h1 {
         font-size: 1.3rem;
