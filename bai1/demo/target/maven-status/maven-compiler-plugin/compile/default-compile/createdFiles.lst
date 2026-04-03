@@ -1,0 +1,5 @@
+context\DBContext.class
+controller\CategoryServlet.class
+dao\DAO.class
+model\Product.class
+model\Category.class
