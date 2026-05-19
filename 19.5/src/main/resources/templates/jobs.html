@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>Available Job Listings</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #111827; }
+        .page { max-width: 1000px; margin: 40px auto; padding: 20px; }
+        h1 { margin-bottom: 12px; }
+        .toolbar { margin-bottom: 16px; display: flex; gap: 12px; }
+        .button { padding: 10px 18px; border: none; border-radius: 8px; background: #2563eb; color: white; cursor: pointer; text-decoration: none; }
+        .button.secondary { background: #374151; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 14px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+        th { background: #f3f4f6; }
+        tr:hover { background: #f8fafc; }
+        .action-button { padding: 6px 12px; border: none; border-radius: 6px; color: white; cursor: pointer; }
+        .delete { background: #dc2626; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Available Job Listings</h1>
+    <div class="toolbar">
+        <a class="button" href="/jobs/new">Add New Job Posting</a>
+        <a class="button secondary" href="/applications">View Applications</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Salary (USD)</th>
+                <th>Posted Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        <tr th:each="job : ${jobs}">
+            <td th:text="${job.id}"></td>
+            <td th:text="${job.title}"></td>
+            <td th:text="${job.company}"></td>
+            <td th:text="${job.location}"></td>
+            <td th:text="${job.salary}"></td>
+            <td th:text="${job.postedDate}"></td>
+            <td>
+                <a th:href="@{'/applications/new'(jobId=${job.id})}" class="action-button secondary">Apply</a>
+                <a th:href="@{'/jobs/delete/' + ${job.id}}" class="action-button delete">Delete</a>
+            </td>
+        </tr>
+        <tr th:if="${jobs.empty}">
+            <td colspan="7" style="text-align:center; padding: 24px;">No job postings available.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

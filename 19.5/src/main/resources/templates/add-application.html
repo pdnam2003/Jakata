@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>Apply for a Job</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f6; color: #111827; }
+        .page { max-width: 700px; margin: 40px auto; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 8px 30px rgba(15,23,42,0.08); }
+        h1 { margin-bottom: 18px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 700; }
+        input, textarea, select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #cbd5e1; }
+        textarea { min-height: 140px; resize: vertical; }
+        .error { color: #b91c1c; font-size: 13px; margin-top: 6px; }
+        .actions { display: flex; gap: 12px; align-items: center; }
+        .button { padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer; color: white; background: #2563eb; }
+        .button.secondary { background: #475569; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Apply for a Job</h1>
+    <form th:action="@{/applications}" th:object="${application}" method="post">
+        <div class="form-group">
+            <label for="applicantName">Applicant Name</label>
+            <input type="text" id="applicantName" th:field="*{applicantName}" placeholder="Nhập tên của bạn" />
+            <div class="error" th:if="${#fields.hasErrors('applicantName')}" th:errors="*{applicantName}"></div>
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" th:field="*{email}" placeholder="example@mail.com" />
+            <div class="error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+        </div>
+        <div class="form-group">
+            <label for="resume">Resume</label>
+            <textarea id="resume" th:field="*{resume}" placeholder="Viết tóm tắt kinh nghiệm của bạn"></textarea>
+            <div class="error" th:if="${#fields.hasErrors('resume')}" th:errors="*{resume}"></div>
+        </div>
+        <div class="form-group">
+            <label for="job">Select Job</label>
+            <select id="job" th:field="*{job.id}">
+                <option value="" disabled th:if="${application.job == null}" selected>-- Choose a job --</option>
+                <option th:each="job : ${jobs}" th:value="${job.id}" th:text="${job.title + ' (' + job.company + ')'}"></option>
+            </select>
+            <div class="error" th:if="${#fields.hasErrors('job')}" th:errors="*{job}"></div>
+        </div>
+        <div class="form-group">
+            <label for="applicationDate">Application Date</label>
+            <input type="date" id="applicationDate" th:field="*{applicationDate}" />
+            <div class="error" th:if="${#fields.hasErrors('applicationDate')}" th:errors="*{applicationDate}"></div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="button">Submit Application</button>
+            <a class="button secondary" href="/applications">View Applications</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

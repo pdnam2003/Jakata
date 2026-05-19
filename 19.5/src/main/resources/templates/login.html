@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>LAN Chat Login</title>
+    <style>
+        body { background: #111827; color: #f8fafc; font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: #1f2937; border-radius: 16px; padding: 36px; width: 360px; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+        .login-card h1 { margin: 0 0 24px; font-size: 26px; text-align: center; }
+        .login-card input { width: 100%; padding: 14px 16px; margin-bottom: 18px; border: 1px solid #374151; border-radius: 10px; color: #f8fafc; background: #111827; }
+        .login-card button { width: 100%; padding: 14px 16px; border: none; border-radius: 10px; background: #3b82f6; color: #fff; font-weight: 700; cursor: pointer; }
+        .login-card button:hover { background: #2563eb; }
+        .login-card p { margin: 8px 0 0; font-size: 14px; color: #9ca3af; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <h1>Tham gia phòng chat LAN</h1>
+    <form action="/chat" method="get">
+        <input type="text" name="username" placeholder="Nhập nickname của bạn" minlength="2" maxlength="24" required autofocus />
+        <button type="submit">Vào phòng chat</button>
+    </form>
+    <p>Không cần mật khẩu. Chỉ cần nickname để bắt đầu.</p>
+</div>
+</body>
+</html>

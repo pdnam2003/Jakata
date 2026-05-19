@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LAN Chat Room</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; }
+        .app-shell { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+        .sidebar { background: #111827; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .sidebar h2 { margin: 0 0 12px; font-size: 20px; }
+        .user-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+        .user-list li { padding: 10px 12px; border-radius: 12px; background: #1f2937; cursor: pointer; transition: background .2s ease; }
+        .user-list li.active { background: #2563eb; }
+        .user-list li:hover { background: #334155; }
+        .main { display: flex; flex-direction: column; }
+        .header { background: #111827; padding: 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header .status { font-size: 14px; color: #94a3b8; }
+        .message-panel { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 12px; overflow: hidden; }
+        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 75%; padding: 14px 16px; border-radius: 18px; line-height: 1.4; word-break: break-word; }
+        .message.system { background: #334155; color: #cbd5e1; margin: 0 auto; }
+        .message.own { background: #1e293b; align-self: flex-end; }
+        .message.private { background: #0f766e; }
+        .message.other { background: #111827; }
+        .meta { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+        .footer { padding: 18px 20px; background: #111827; border-top: 1px solid #334155; display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+        .footer input { width: 100%; border: 1px solid #334155; border-radius: 12px; padding: 14px 16px; background: #0f172a; color: #e2e8f0; }
+        .footer button { border: none; border-radius: 12px; background: #2563eb; color: white; font-weight: 700; padding: 0 22px; cursor: pointer; }
+        .typing-status { min-height: 20px; color: #94a3b8; font-size: 13px; }
+        .target-info { font-size: 14px; color: #e2e8f0; }
+        .target-info span { color: #60a5fa; }
+        .online-count { margin-top: 4px; color: #94a3b8; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div>
+            <h2>Danh sách online</h2>
+            <p class="online-count"><span id="onlineCount">0</span> người đang online</p>
+        </div>
+        <ul class="user-list" id="userList"></ul>
+        <div class="target-info" id="targetInfo">Chat chung: mọi người cùng thấy tin nhắn.</div>
+    </aside>
+    <section class="main">
+        <div class="header">
+            <div>
+                <h1>Phòng chat LAN</h1>
+                <div class="status">Bạn là <strong th:text="${username}"></strong></div>
+            </div>
+            <div class="status">Kết nối qua WebSocket real-time</div>
+        </div>
+        <div class="message-panel">
+            <div class="typing-status" id="typingStatus"></div>
+            <div class="messages" id="messageArea"></div>
+        </div>
+        <div class="footer">
+            <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." autocomplete="off" />
+            <button id="sendButton">Gửi</button>
+        </div>
+    </section>
+</div>
+
+<script th:inline="javascript">
+    const username = /*[[${username}]]*/ 'Unknown';
+    const historyMessages = /*[[${historyJson}]]*/ [];
+</script>
+<script>
+    let stompClient = null;
+    let selectedRecipient = null;
+    let typingTimeout = null;
+    const messageArea = document.getElementById('messageArea');
+    const userList = document.getElementById('userList');
+    const onlineCount = document.getElementById('onlineCount');
+    const messageInput = document.getElementById('messageInput');
+    const typingStatus = document.getElementById('typingStatus');
+    const targetInfo = document.getElementById('targetInfo');
+
+    function connect() {
+        const socket = new SockJS('/ws?username=' + encodeURIComponent(username));
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, onConnected, onError);
+    }
+
+    function onConnected() {
+        stompClient.subscribe('/topic/public', onPublicMessage);
+        stompClient.subscribe('/topic/users', onUsersUpdate);
+        stompClient.subscribe('/user/queue/private', onPrivateMessage);
+        stompClient.subscribe('/topic/typing', onTypingMessage);
+        sendJoin();
+        historyMessages.forEach(renderMessage);
+        scrollToBottom();
+    }
+
+    function onError(error) {
+        console.error('Could not connect to WebSocket server:', error);
+        appendSystemMessage('Không thể kết nối tới server. Vui lòng thử lại.');
+    }
+
+    function sendJoin() {
+        const message = { type: 'JOIN', sender: username, content: username + ' joined' };
+        stompClient.send('/app/chat.addUser', {}, JSON.stringify(message));
+    }
+
+    function sendMessage() {
+        const content = messageInput.value.trim();
+        if (!content || !stompClient) {
+            return;
+        }
+        const payload = {
+            type: 'CHAT',
+            sender: username,
+            content: content,
+            recipient: selectedRecipient
+        };
+        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(payload));
+        messageInput.value = '';
+        clearTyping();
+        if (selectedRecipient) {
+            appendLocalMessage(content, selectedRecipient);
+        }
+    }
+
+    function onPublicMessage(payload) {
+        const message = JSON.parse(payload.body);
+        renderMessage(message);
+        scrollToBottom();
+    }
+
+    function onPrivateMessage(payload) {
+        const message = JSON.parse(payload.body);
+        renderMessage(message, true);
+        scrollToBottom();
+    }
+
+    function onUsersUpdate(payload) {
+        const users = JSON.parse(payload.body);
+        renderUserList(users);
+    }
+
+    function onTypingMessage(payload) {
+        const message = JSON.parse(payload.body);
+        if (message.sender === username || message.type !== 'TYPING') {
+            return;
+        }
+        typingStatus.textContent = message.content === 'true' ? message.sender + ' đang soạn tin...' : '';
+    }
+
+    function renderUserList(users) {
+        userList.innerHTML = '';
+        users.forEach(user => {
+            const item = document.createElement('li');
+            item.textContent = user === username ? user + ' (Bạn)' : user;
+            item.className = user === selectedRecipient ? 'active' : '';
+            item.onclick = () => chooseRecipient(user);
+            userList.appendChild(item);
+        });
+        onlineCount.textContent = users.length;
+    }
+
+    function chooseRecipient(user) {
+        if (user === username) {
+            return;
+        }
+        selectedRecipient = selectedRecipient === user ? null : user;
+        userList.querySelectorAll('li').forEach(li => {
+            li.classList.toggle('active', li.textContent.startsWith(user));
+        });
+        if (selectedRecipient) {
+            targetInfo.innerHTML = 'Gửi riêng cho <span>' + selectedRecipient + '</span>'; 
+        } else {
+            targetInfo.textContent = 'Chat chung: mọi người cùng thấy tin nhắn.';
+        }
+    }
+
+    function renderMessage(message, isPrivate = false) {
+        const bubble = document.createElement('div');
+        bubble.className = 'message';
+        if (message.type === 'JOIN' || message.type === 'LEAVE') {
+            bubble.classList.add('system');
+            bubble.textContent = message.content;
+        } else {
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            if (message.sender === username) {
+                bubble.classList.add('own');
+                meta.textContent = 'Bạn' + (message.recipient ? ' → ' + message.recipient : '');
+            } else if (isPrivate || message.recipient) {
+                bubble.classList.add('private');
+                meta.textContent = message.sender + ' → bạn';
+            } else {
+                bubble.classList.add('other');
+                meta.textContent = message.sender;
+            }
+            bubble.appendChild(meta);
+            const text = document.createElement('div');
+            text.textContent = message.content;
+            bubble.appendChild(text);
+        }
+        messageArea.appendChild(bubble);
+    }
+
+    function appendSystemMessage(content) {
+        renderMessage({ type: 'SYSTEM', content: content });
+        scrollToBottom();
+    }
+
+    function appendLocalMessage(content, recipient) {
+        const message = {
+            type: recipient ? 'PRIVATE' : 'CHAT',
+            sender: username,
+            content: content,
+            recipient: recipient
+        };
+        renderMessage(message, !!recipient);
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        messageArea.scrollTop = messageArea.scrollHeight;
+    }
+
+    function sendTyping(state) {
+        if (!stompClient) return;
+        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify({
+            type: 'TYPING', sender: username, content: state ? 'true' : 'false'
+        }));
+    }
+
+    function clearTyping() {
+        sendTyping(false);
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+            typingTimeout = null;
+        }
+    }
+
+    messageInput.addEventListener('input', () => {
+        sendTyping(true);
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+        }
+        typingTimeout = setTimeout(() => {
+            sendTyping(false);
+        }, 1200);
+    });
+
+    document.getElementById('sendButton').addEventListener('click', sendMessage);
+    messageInput.addEventListener('keyup', event => {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    connect();
+</script>
+</body>
+</html>

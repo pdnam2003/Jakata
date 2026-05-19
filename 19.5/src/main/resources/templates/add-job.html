@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>Add New Job Posting</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f6; color: #111827; }
+        .page { max-width: 640px; margin: 40px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 8px 30px rgba(15,23,42,0.08); }
+        .page h1 { margin-bottom: 18px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 700; }
+        input, textarea, select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #cbd5e1; }
+        .error { color: #b91c1c; font-size: 13px; margin-top: 6px; }
+        .actions { display: flex; gap: 12px; align-items: center; }
+        .button { padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer; color: white; background: #2563eb; }
+        .button.secondary { background: #475569; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Add New Job Posting</h1>
+    <form th:action="@{/jobs}" th:object="${job}" method="post">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" th:field="*{title}" placeholder="Nhập tiêu đề công việc" />
+            <div class="error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
+        </div>
+        <div class="form-group">
+            <label for="company">Company</label>
+            <input type="text" id="company" th:field="*{company}" placeholder="Nhập tên công ty" />
+            <div class="error" th:if="${#fields.hasErrors('company')}" th:errors="*{company}"></div>
+        </div>
+        <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" id="location" th:field="*{location}" placeholder="Nhập địa điểm" />
+            <div class="error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></div>
+        </div>
+        <div class="form-group">
+            <label for="salary">Salary (USD)</label>
+            <input type="number" id="salary" th:field="*{salary}" placeholder="1000" min="1000" />
+            <div class="error" th:if="${#fields.hasErrors('salary')}" th:errors="*{salary}"></div>
+        </div>
+        <div class="form-group">
+            <label for="postedDate">Posted Date</label>
+            <input type="date" id="postedDate" th:field="*{postedDate}" />
+            <div class="error" th:if="${#fields.hasErrors('postedDate')}" th:errors="*{postedDate}"></div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="button">Post Job</button>
+            <a class="button secondary" href="/jobs">Back to Listings</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>
